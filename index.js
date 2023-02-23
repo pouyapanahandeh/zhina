@@ -10,7 +10,7 @@ const nacl = require('libsodium-wrappers');
 
 
 // Set up Libp2p node with the desired options
-const node = await Libp2p.create({
+Libp2p.create({
     addresses: {
         listen: ['/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star'],
     },
@@ -20,6 +20,13 @@ const node = await Libp2p.create({
         connEncryption: [Secio],
         dht: KadDHT,
     },
+}).then((node) => {
+    // Set up OrbitDB with the desired options
+    OrbitDB.createInstance(node, { directory: './orbitdb' }).then((orbitdb) => {
+        // Your code that uses node and orbitdb goes here
+    });
+}).catch((err) => {
+    console.error(err);
 });
 
 // Set up OrbitDB with the desired options
