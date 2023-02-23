@@ -1,0 +1,21 @@
+{
+  "name": "zhina",
+  "version": "1.0.0",
+  "description": "Zhina is encrypted open network for people of Iran to exchange messages and files safely.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "panahandehpooya@gmail.com",
+  "license": "ISC",
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "libp2p": "^0.42.2",
+    "libp2p-kad-dht": "^0.28.6",
+    "libp2p-mplex": "^0.10.7",
+    "libp2p-secio": "^0.13.1",
+    "libp2p-webrtc-star": "^0.25.0",
+    "libp2p-websockets": "^0.16.2",
+    "orbit-db": "^0.29.0"
+  }
+}
