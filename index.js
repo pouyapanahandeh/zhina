@@ -6,6 +6,8 @@ const Secio = require('libp2p-secio');
 const KadDHT = require('libp2p-kad-dht');
 const crypto = require('crypto');
 const OrbitDB = require('orbit-db');
+const nacl = require('libsodium-wrappers');
+
 
 // Set up Libp2p node with the desired options
 const node = await Libp2p.create({
@@ -78,19 +80,28 @@ class Room {
 }
 
 class User {
-    constructor(username, password, keyPair) {
+    constructor(username, password, publicKey, privateKey) {
         this.username = username;
         this.password = password;
-        this.keyPair = keyPair;
+        this.publicKey = publicKey;
+        this.privateKey = privateKey;
     }
 
-    encryptData(data) {
-        const encrypted = encrypt(data, this.keyPair.publicKey);
+    async encryptData(data) {
+        await nacl.ready;
+        const nonce = nacl.randombytes_buf(nacl.crypto_secretbox_NONCEBYTES);
+        const message = nacl.crypto_secretbox_easy(data, nonce, this.privateKey);
+        const encrypted = new Uint8Array(nonce.length + message.length);
+        encrypted.set(nonce);
+        encrypted.set(message, nonce.length);
         return encrypted;
     }
 
-    decryptData(encryptedData) {
-        const decrypted = decrypt(encryptedData, this.keyPair.privateKey);
+    async decryptData(encryptedData) {
+        await nacl.ready;
+        const nonce = encryptedData.slice(0, nacl.crypto_secretbox_NONCEBYTES);
+        const ciphertext = encryptedData.slice(nacl.crypto_secretbox_NONCEBYTES);
+        const decrypted = nacl.crypto_secretbox_open_easy(ciphertext, nonce, this.publicKey);
         return decrypted;
     }
 }
@@ -98,6 +109,10 @@ class User {
 const userManager = {
     users: [],
     currentUser: null,
+
+    async initialize() {
+        await nacl.ready;
+    },
 
     getCurrentUser() {
         return this.currentUser;
@@ -107,9 +122,12 @@ const userManager = {
         this.currentUser = user;
     },
 
-    createUser(username, password) {
-        const keyPair = generateKeyPair();
-        const user = new User(username, password, keyPair);
+    async createUser(username, password) {
+        await nacl.ready;
+        const keyPair = nacl.crypto_box_keypair();
+        const publicKey = keyPair.publicKey;
+        const privateKey = keyPair.privateKey;
+        const user = new User(username, password, publicKey, privateKey);
         this.users.push(user);
         return user;
     },
