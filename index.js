@@ -142,5 +142,51 @@ const userManager = {
     getUserByUsername(username) {
         const user = this.users.find(user => user.username === username);
         return user;
+    },
+
+    async sendMessage(roomName, message) {
+        const room = roomManager.getRoomByName(roomName);
+        const encryptedMessage = await userManager.getCurrentUser().encryptData(message);
+        await room.broadcast(userManager.getCurrentUser().username, encryptedMessage);
+    },
+
+    async receiveMessage(username, encryptedMessage) {
+        const decryptedMessage = await userManager.getCurrentUser().decryptData(encryptedMessage);
+        console.log(`${username}: ${decryptedMessage}`);
     }
 };
+
+const roomManager = {
+    rooms: [],
+
+    async createRoom(name, password) {
+        const room = new Room(name, password);
+        this.rooms.push(room);
+        return room;
+    },
+
+    getRoomByName(name) {
+        const room = this.rooms.find(room => room.name === name);
+        return room;
+    }
+};
+
+(async () => {
+    await nacl.ready;
+    await userManager.initialize();
+
+    const alice = await userManager.createUser('alice', 'password');
+    const bob = await userManager.createUser('bob', 'password');
+
+    userManager.setCurrentUser(alice);
+
+    const room = await roomManager.createRoom('test', 'password');
+    await room.join(alice.username, alice.password);
+    await room.join(bob.username, bob.password);
+
+    await userManager.sendMessage(room.name, 'Hello, Bob!');
+
+    // Simulating receiving a message from another user
+    const encryptedMessage = await bob.encryptData('Hi, Alice!');
+    await userManager.receiveMessage(bob.username, encryptedMessage);
+})();
